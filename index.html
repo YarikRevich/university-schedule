@@ -57,7 +57,7 @@ h1{font-size:1.6rem;font-weight:700;letter-spacing:-.01em;margin:0;text-wrap:bal
 .btn:hover{border-color:var(--muted)}
 .btn:disabled{opacity:.5;cursor:default}
 .btn:focus-visible,.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.btn.primary,#install{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
 .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px}
 .status{font-size:.78rem;color:var(--muted);flex-basis:100%}
 .panel{margin-top:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;display:grid;gap:8px}
@@ -105,7 +105,6 @@ dialog.modal .k{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;c
 .cls.now .time{color:var(--accent);font-weight:500}
 .off{color:var(--muted);font-size:.85rem;font-style:italic}
 .note{font-size:.75rem;color:var(--muted)}
-.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;font-size:.78rem;color:var(--muted);align-items:center}
 .subj{padding-block:14px;border-bottom:1px solid var(--line)}
 .subj h3{font-size:1rem;font-weight:500;margin:0 0 6px;text-wrap:balance}
 .subj table{width:100%;min-width:620px;table-layout:fixed;border-collapse:collapse;font-size:.82rem}
@@ -125,7 +124,6 @@ dialog.modal .k{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;c
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <span id="curWeek" class="pill"></span>
-      <button id="install" class="btn" hidden>Install app</button>
     </div>
   </header>
 
@@ -149,12 +147,6 @@ dialog.modal .k{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;c
       <button class="btn" id="today">Today</button>
     </div>
     <div id="days"></div>
-    <div class="legend">
-      <span class="chip c-Czyżyny">Czyżyny</span>
-      <span class="chip c-Warszawska">Warszawska 24</span>
-      <span class="chip c-Zdalnie">Online</span>
-      <span id="abNote"></span>
-    </div>
   </section>
 
   <section id="v-subj" hidden></section>
@@ -350,7 +342,6 @@ function derive(){
   (CAL.partialClosures||[]).forEach(p=>SPECIAL[p.date]=`Break ${hhmm(p.start)}–${hhmm(p.end)}`);
   Object.entries(CAL.replacementDays||{}).forEach(([d,eff])=>SPECIAL[d]=`Runs the ${LONGDAYS[(local(eff).getDay()+6)%7]} timetable`);
   SPECIAL[CAL.end]=(SPECIAL[CAL.end]?SPECIAL[CAL.end]+" · ":"")+"Last day of the semester";
-  $("abNote").textContent=`· A/B alternate weekly: A from ${dmS(CAL.parityAnchor)}, B from ${dm(addDays(ANCHOR,7))}`;
 }
 const closedDay=s=>isClosed(s,CAL);
 const where=e=>e.c==="Zdalnie"?"Online":`${e.c} · ${e.r}`;
@@ -604,10 +595,7 @@ if(store.get("tab")==="subj")setTab("subj");
 autoCheck();
 setInterval(()=>{renderCur();renderWeek()},60000);
 
-/* PWA: install prompt + offline cache (when hosted as its own site over HTTPS) */
-let deferred;
-window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;$("install").hidden=false});
-$("install").onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;$("install").hidden=true};
+/* PWA: offline cache (when hosted as its own site over HTTPS) */
 if("serviceWorker" in navigator&&window.top===window&&document.querySelector('link[rel="manifest"]')){navigator.serviceWorker.register("sw.js").catch(()=>{})}
 </script>
 
