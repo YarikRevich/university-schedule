@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="University Schedule">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>CY GL4 Timetable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+<style id="st">
+/* Layout: one narrow reading column; a sticky week bar; each day is a date gutter + list of class rows. */
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --fg:#161a22; --muted:#667085; --line:#e3e6ec;
+  --accent:#2f5bd3; --accent-soft:#e7edfb;
+  --warsz:#b4561f; --warsz-soft:#f8eadf; --czyz:#1d7a5a; --czyz-soft:#e0f1ea; --online:#6b6f7b; --online-soft:#eceef2;
+  --wa:#2f5bd3; --wb:#a3478f; --wm:#c4322b; --wa-soft:#e7edfb; --wb-soft:#f7e9f4; --add:#1d7a5a; --del:#b42318;
+  --d0:#eef2fb; --d1:#eef7f1; --d2:#fbf5e9; --d3:#f6effa; --d4:#fbefee;
+  --sans:"Roboto",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --surface:#171a21; --fg:#e8eaf0; --muted:#8b93a5; --line:#262b35;
+  --accent:#86a4f5; --accent-soft:#1c2540;
+  --warsz:#eb9a66; --warsz-soft:#35231a; --czyz:#5cc79e; --czyz-soft:#16302a; --online:#a2a8b6; --online-soft:#22262f;
+  --wa:#86a4f5; --wb:#d98bc7; --wm:#f47c72; --wa-soft:#1c2540; --wb-soft:#2e1d2b; --add:#5cc79e; --del:#f97066; --d0:#182033; --d1:#16261f; --d2:#2a2418; --d3:#251c2e; --d4:#2c1d1d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --surface:#171a21; --fg:#e8eaf0; --muted:#8b93a5; --line:#262b35;
+  --accent:#86a4f5; --accent-soft:#1c2540;
+  --warsz:#eb9a66; --warsz-soft:#35231a; --czyz:#5cc79e; --czyz-soft:#16302a; --online:#a2a8b6; --online-soft:#22262f;
+  --wa:#86a4f5; --wb:#d98bc7; --wm:#f47c72; --wa-soft:#1c2540; --wb-soft:#2e1d2b; --add:#5cc79e; --del:#f97066; --d0:#182033; --d1:#16261f; --d2:#2a2418; --d3:#251c2e; --d4:#2c1d1d; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--sans);font-variant-numeric:tabular-nums;font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:20px 48px}
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-size:1.6rem;font-weight:700;letter-spacing:-.01em;margin:0;text-wrap:balance}
+.gwrap{position:relative;display:inline-flex;align-items:center}
+.gwrap::after{content:"";position:absolute;right:6px;top:50%;width:8px;height:8px;margin-top:-6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);pointer-events:none;opacity:.7}
+.gsel{font:inherit;color:inherit;background:transparent;border:1px solid transparent;border-radius:8px;padding:0 28px 0 6px;margin-left:-7px;appearance:none;-webkit-appearance:none;cursor:pointer}
+.gsel:hover{border-color:var(--line);background:var(--surface)}
+.gsel:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.gsel option,.gsel optgroup{font-size:1rem;font-weight:400;color:var(--fg);background:var(--surface)}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sub{color:var(--muted);font-size:.85rem;margin-top:2px}
+.pill{font-size:.75rem;padding:3px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+#curWeek,#curWeek.pA,#curWeek.pB{font-family:var(--sans);font-size:1rem;font-weight:400;padding:8px 16px;border-radius:10px;border:1px solid var(--muted);background:var(--surface);color:var(--fg)}
+.pA{color:var(--wa)} .pB{color:var(--wb)} .pM{color:var(--wm);font-family:var(--sans);font-weight:400}
+.btn{font:inherit;font-size:.85rem;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn:focus-visible,.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.primary,#install{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px}
+.status{font-size:.78rem;color:var(--muted);flex-basis:100%}
+.panel{margin-top:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;display:grid;gap:8px}
+.panel h2{font-size:.95rem;font-weight:500;margin:0}
+.panel p{margin:0;font-size:.85rem;color:var(--muted)}
+.panel ul{margin:0;padding-left:18px;font-size:.82rem;display:grid;gap:2px}
+.panel .k{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.add{color:var(--add)} .del{color:var(--del)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+dialog.modal{font-family:var(--sans);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;width:min(560px,calc(100vw - 32px));max-height:min(80vh,720px);overflow:auto;background:var(--surface);color:var(--fg);box-shadow:0 20px 50px rgba(0,0,0,.25)}
+dialog.modal::backdrop{background:rgba(15,17,21,.45)}
+dialog.modal h2{font-size:1.05rem;font-weight:500;margin:0 0 4px}
+dialog.modal p{margin:0 0 8px;font-size:.85rem;color:var(--muted)}
+dialog.modal *{font-family:inherit}
+dialog.modal ul{margin:0 0 10px;padding-left:18px;font-size:.84rem;display:grid;gap:3px}
+dialog.modal .k{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:6px}
+.tabs{display:flex;gap:4px;margin-top:20px;border-bottom:1px solid var(--line)}
+.tab{font:inherit;font-size:.9rem;background:none;border:0;border-bottom:2px solid transparent;padding:8px 10px;color:var(--muted);cursor:pointer;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--fg)}
+.weekbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:2;background:var(--bg);display:flex;align-items:center;gap:8px;padding-block:12px;border-bottom:1px solid var(--line)}
+.weekbar .lbl{flex:1;min-width:0;text-align:center;font-size:.9rem}
+.weekbar .lbl b{font-weight:500}
+.weekbar .dates{display:block;font-size:.75rem;color:var(--muted)}
+.arrow{width:36px;height:36px;padding:0;font-size:1.1rem;line-height:1}
+#days{display:grid;gap:8px;padding-top:10px}
+.day{display:grid;grid-template-columns:64px 1fr;gap:12px;padding:14px 12px;border-radius:10px;background:var(--dbg)}
+.day.dw0{--dbg:var(--d0)}.day.dw1{--dbg:var(--d1)}.day.dw2{--dbg:var(--d2)}.day.dw3{--dbg:var(--d3)}.day.dw4{--dbg:var(--d4)}
+.day.today{box-shadow:inset 0 0 0 2px var(--accent)}
+.day.today .dname{color:var(--accent)}
+.dname{font-weight:500;font-size:.85rem}
+.ddate{font-size:.75rem;color:var(--muted)}
+.list{display:grid;gap:10px;min-width:0}
+.cls{display:grid;grid-template-columns:92px 1fr;gap:10px;min-width:0}
+.time{font-size:.8rem;padding-top:1px}
+.time small{display:block;color:var(--muted);font-size:.72rem}
+.body{min-width:0}
+.name{font-weight:500;overflow-wrap:anywhere}
+.meta{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin-top:3px;font-size:.8rem;color:var(--muted)}
+.chip{font-size:.72rem;padding:1px 7px;border-radius:5px;font-weight:500;box-shadow:inset 0 0 0 1px color-mix(in srgb,currentColor 18%,transparent)}
+.c-Warszawska{color:var(--warsz);background:var(--warsz-soft)}
+.c-Czyżyny{color:var(--czyz);background:var(--czyz-soft)}
+.c-Zdalnie{color:var(--online);background:var(--online-soft)}
+.form{font-size:.72rem;color:var(--muted);border:1px solid color-mix(in srgb,var(--muted) 35%,transparent);border-radius:5px;padding:0 5px}
+.cls.past{opacity:.45}
+.cls.now .time{color:var(--accent);font-weight:500}
+.off{color:var(--muted);font-size:.85rem;font-style:italic}
+.note{font-size:.75rem;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;font-size:.78rem;color:var(--muted);align-items:center}
+.subj{padding-block:14px;border-bottom:1px solid var(--line)}
+.subj h3{font-size:1rem;font-weight:500;margin:0 0 6px;text-wrap:balance}
+.subj table{width:100%;min-width:620px;table-layout:fixed;border-collapse:collapse;font-size:.82rem}
+.subj td:nth-child(1){width:108px}.subj td:nth-child(2){width:142px}.subj td:nth-child(3){width:84px}.subj td:nth-child(4){width:130px}.subj td:nth-child(6){width:84px}
+.subj td{padding:3px 8px 3px 0;vertical-align:top}
+.subj td.m{white-space:nowrap;color:var(--muted)}
+.tw{overflow-x:auto}
+@media (max-width:480px){.day{grid-template-columns:1fr;gap:8px}.dhead{display:flex;gap:8px;align-items:baseline}.cls{grid-template-columns:80px 1fr}}
+@media (prefers-reduced-motion:no-preference){.cls{transition:opacity .2s}}
+</style>
+
+<div class="wrap" id="app">
+  <header class="top">
+    <div>
+      <h1><label class="vh" for="groupSel">Group</label><span class="gwrap"><select id="groupSel" class="gsel"><option>CY · GL4</option></select></span></h1>
+      <div class="sub" id="sub">II stopień · sem. 2 · Cyberbezpieczeństwo · zima 2026/27</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="curWeek" class="pill"></span>
+      <button id="install" class="btn" hidden>Install app</button>
+    </div>
+  </header>
+
+  <div class="tools">
+    <button class="btn" id="loadXlsx">Update source</button>
+    <input type="file" id="xlsxFile" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+    <span class="status" id="status"></span>
+  </div>
+  <section class="panel" id="panel" hidden aria-live="polite"></section>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t-week" aria-selected="true">Week</button>
+    <button class="tab" role="tab" id="t-subj" aria-selected="false">Subjects</button>
+  </nav>
+
+  <section id="v-week">
+    <div class="weekbar">
+      <button class="btn arrow" id="prev" aria-label="Previous week">‹</button>
+      <div class="lbl" id="wlbl"></div>
+      <button class="btn arrow" id="nextw" aria-label="Next week">›</button>
+      <button class="btn" id="today">Today</button>
+    </div>
+    <div id="days"></div>
+    <div class="legend">
+      <span class="chip c-Czyżyny">Czyżyny</span>
+      <span class="chip c-Warszawska">Warszawska 24</span>
+      <span class="chip c-Zdalnie">Online</span>
+      <span id="abNote"></span>
+    </div>
+  </section>
+
+  <section id="v-subj" hidden></section>
+
+  <dialog id="changes" class="modal" aria-labelledby="chTitle">
+    <div id="chBody"></div>
+    <div class="row"><button class="btn" id="chClose">OK</button></div>
+  </dialog>
+</div>
+
+<script type="application/json" id="schedule-data">{"meta": {"updated": "2026-10-03T10:23:07.291Z"}, "calendar": {"year": "2026/2027", "season": "winter", "source": "Zalacznik (1).pdf — Zarządzenie Rektora PK nr 59 z 30.04.2026", "start": "2026-10-01", "end": "2027-02-02", "closures": [{"from": "2026-10-02", "to": "2026-10-02"}, {"from": "2026-10-31", "to": "2026-11-02"}, {"from": "2026-11-11", "to": "2026-11-11"}, {"from": "2026-12-23", "to": "2027-01-06"}], "partialClosures": [{"date": "2026-12-17", "start": 660, "end": 840}], "replacementDays": {"2027-01-28": "2026-12-23", "2027-02-02": "2027-01-06"}, "parityAnchor": "2026-09-28", "firstWeek": "A — nieparzysty", "halfBoundary": "2026-11-23", "notes": "Organizacja ostatniego semestru i studiów wspólnych może podlegać odrębnej decyzji dziekana (§3–4). Granica połówek robocza; kontroluj bilans godzin.", "regularStationaryStart": "2026-10-05"}, "rooms": {"114": "Warszawska", "131": "Warszawska", "303": "Warszawska", "312": "Warszawska", "L1": "Czyżyny", "L2": "Czyżyny", "L3": "Czyżyny", "L4": "Czyżyny", "L5": "Czyżyny", "W1": "Czyżyny", "P1": "Czyżyny", "S1": "Czyżyny", "1/15": "Warszawska", "ONLINE": "Zdalnie", "HALA-KAMIENNA": "Kamienna", "DS4-SILOWNIA": "Czyżyny", "152 SJO": "Warszawska", "TODO": "Do ustalenia", "N": "Warszawska", "S2": "Warszawska", "S3": "Warszawska", "LEA": "Lea", "SZKOLENIA-PK": "PK — wg organizatora szkolenia", "SEMINARYJNA": "Czyżyny", "sala w SJO": "Warszawska", "LEA-114": "Lea"}, "groups": {"CY_GL1": {"spec": "CY", "lab": 1, "plannerGroups": ["CY", "CY_L1", "CY_GL1", "CY_C1"], "meta": {"excel": "30.09.2026 00:29", "planner": "2026-10-03T10:23:07.264Z", "origin": "planner"}, "classes": [{"s": "Zaawansowane techniki kryptografii i kryptoanalizy", "f": "Laboratorium", "t": "Cywicka Dominika", "g": "CY_L1", "r": "114", "a": "12:45", "b": "14:15", "day": 0, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-09", "2026-11-16", "2026-11-23", "2026-11-30", "2026-12-07", "2026-12-14", "2026-12-21", "2027-01-11", "2027-01-18", "2027-01-25", "2027-02-01"], "c": "Warszawska"}, {"s": "Zaawansowane techniki kryptografii i kryptoanalizy", "f": "Projekt", "t": "Jakóbik Agnieszka", "g": "CY_L1", "r": "131", "a": "16:15", "b": "17:45", "day": 0, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-05", "2026-10-19", "2026-11-16", "2026-11-30", "2026-12-14", "2027-01-11", "2027-01-25"], "c": "Warszawska"}, {"s": "Testy penetracyjne", "f": "Wykład", "t": "Wójcik Łukasz", "g": "CY", "r": "ONLINE", "a": "07:30", "b": "09:00", "day": 1, "x": "", "n": "Wykłady do 27.11; łącznie 15 godz.", "o": true, "w": "B", "d": ["2026-10-06", "2026-10-20", "2026-11-03", "2026-11-17"], "c": "Zdalnie"}, {"s": "Psychologia motywacji, emocji i radzenia sobie ze stresem", "f": "Wykład", "t": "Karolina Duniec", "g": "CY + DS + SIRR", "r": "ONLINE", "a": "09:15", "b": "10:45", "day": 1, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-06", "2026-11-03", "2026-11-17", "2026-12-01", "2026-12-15", "2027-01-12", "2027-01-26"], "c": "Zdalnie"}, {"s": "Programowanie równoległe i rozproszone", "f": "Wykład", "t": "Krużel Filip", "g": "CY + DS + SIRR", "r": "ONLINE", "a": "11:00", "b": "12:30", "day": 1, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-06", "2026-10-13", "2026-10-20", "2026-10-27", "2026-11-03", "2026-11-10", "2026-11-17"], "c": "Zdalnie"}, {"s": "Zarządzanie projektem informatycznym", "f": "Wykład", "t": "Stanuszek Marek", "g": "CY + DS + SIRR", "r": "ONLINE", "a": "12:45", "b": "14:15", "day": 1, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-06", "2026-10-20", "2026-11-03", "2026-11-17", "2026-12-01", "2026-12-15", "2027-01-12", "2027-01-26"], "c": "Zdalnie"}, {"s": "Testy penetracyjne", "f": "Laboratorium", "t": "Wójcik Łukasz", "g": "CY_L1", "r": "L2", "a": "16:00", "b": "17:30", "day": 1, "x": "", "n": "", "o": true, "w": "A + B", "d": ["2026-10-06", "2026-10-13", "2026-10-20", "2026-10-27", "2026-11-03", "2026-11-10", "2026-11-17", "2026-11-24", "2026-12-01", "2026-12-08", "2026-12-15", "2026-12-22", "2027-01-12", "2027-01-19", "2027-01-26"], "c": "Czyżyny"}, {"s": "Bezpieczeństwo w sieciach telekomunikacyjnych", "f": "Laboratorium", "t": "Żelasko Dariusz", "g": "CY_L1", "r": "L1", "a": "17:45", "b": "19:15", "day": 1, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-06", "2026-10-13", "2026-10-20", "2026-10-27", "2026-11-03", "2026-11-10", "2026-11-17", "2026-11-24", "2026-12-01", "2026-12-08", "2026-12-15", "2026-12-22", "2027-01-12", "2027-01-19", "2027-01-26"], "c": "Czyżyny"}, {"s": "Programowanie równoległe i rozproszone", "f": "Laboratorium", "t": "Orlof Jerzy", "g": "CY_L1", "r": "L5", "a": "16:15", "b": "17:45", "day": 2, "x": "", "n": "", "o": false, "w": "A", "d": ["2026-10-14", "2026-10-28", "2026-11-25", "2026-12-09", "2027-01-20", "2027-01-28", "2027-02-02"], "c": "Czyżyny"}, {"s": "Metody sztucznej inteligencji w cyberbezpieczeństwie", "f": "Wykład", "t": "Kołodziej Joanna", "g": "CY", "r": "ONLINE", "a": "19:45", "b": "21:15", "day": 2, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-07", "2026-10-14", "2026-10-21", "2026-10-28", "2026-11-04", "2026-11-18", "2026-11-25", "2026-12-02", "2026-12-09", "2026-12-16", "2027-01-13", "2027-01-20", "2027-01-27", "2027-01-28", "2027-02-02"], "c": "Zdalnie"}, {"s": "Psychologia motywacji, emocji i radzenia sobie ze stresem", "f": "Ćwiczenia", "t": "Karolina Duniec", "g": "CY_C1", "r": "W1", "a": "11:00", "b": "12:30", "day": 3, "x": "", "n": "", "o": false, "w": "A", "d": ["2026-10-29", "2026-11-12", "2026-11-26", "2026-12-10", "2027-01-07", "2027-01-21"], "c": "Czyżyny"}, {"s": "Zarządzanie projektem informatycznym", "f": "Projekt", "t": "Gaża Łukasz", "g": "CY_L1", "r": "W1", "a": "12:45", "b": "14:15", "day": 3, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-08", "2026-10-15", "2026-10-22", "2026-10-29", "2026-11-05", "2026-11-12", "2026-11-19", "2026-11-26", "2026-12-03", "2026-12-10", "2027-01-07", "2027-01-14", "2027-01-21"], "c": "Czyżyny"}, {"s": "Programowanie równoległe i rozproszone", "f": "Projekt", "t": "Krużel Filip", "g": "CY_L1", "r": "W1", "a": "14:30", "b": "16:00", "day": 3, "x": "", "n": "", "o": false, "w": "A", "d": ["2026-10-15", "2026-10-29", "2026-11-12", "2026-11-26", "2026-12-10", "2027-01-07", "2027-01-21"], "c": "Czyżyny"}, {"s": "Metody sztucznej inteligencji w cyberbezpieczeństwie", "f": "Projekt", "t": "Kluczkiewicz Krystian", "g": "CY_L1", "r": "L3", "a": "18:00", "b": "19:30", "day": 3, "x": "", "n": "", "o": false, "w": "A", "d": ["2026-10-15", "2026-10-29", "2026-11-12", "2026-11-26", "2026-12-10", "2027-01-07", "2027-01-21"], "c": "Czyżyny"}, {"s": "Bezpieczeństwo i hardening systemów operacyjnych", "f": "Laboratorium", "t": "Mycek Andrzej", "g": "CY_L1", "r": "L4", "a": "19:45", "b": "21:15", "day": 3, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-08", "2026-10-15", "2026-10-22", "2026-10-29", "2026-11-05", "2026-11-12", "2026-11-19", "2026-11-26", "2026-12-03", "2026-12-10", "2026-12-17", "2027-01-07", "2027-01-14", "2027-01-21"], "c": "Czyżyny"}, {"s": "Bezpieczeństwo i hardening systemów operacyjnych", "f": "Wykład", "t": "Mycek Andrzej", "g": "CY", "r": "ONLINE", "a": "16:15", "b": "17:45", "day": 4, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-09", "2026-10-23", "2026-11-06", "2026-11-20", "2026-12-04", "2026-12-18", "2027-01-15", "2027-01-29"], "c": "Zdalnie"}, {"s": "Testy penetracyjne", "f": "Wykład", "t": "Wójcik Łukasz", "g": "CY", "r": "ONLINE", "a": "16:15", "b": "17:45", "day": 4, "x": "", "n": "Wykłady do 27.11; łącznie 15 godz.", "o": true, "w": "A", "d": ["2026-10-16", "2026-10-30", "2026-11-13", "2026-11-27"], "c": "Zdalnie"}, {"s": "Bezpieczeństwo w sieciach telekomunikacyjnych", "f": "Wykład", "t": "Żelasko Dariusz", "g": "CY", "r": "ONLINE", "a": "18:00", "b": "19:30", "day": 4, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-09", "2026-10-16", "2026-10-23", "2026-10-30", "2026-11-06", "2026-11-13", "2026-11-20", "2026-11-27", "2026-12-04", "2026-12-11", "2026-12-18", "2027-01-08", "2027-01-15", "2027-01-22", "2027-01-29"], "c": "Zdalnie"}, {"s": "Zaawansowane techniki kryptografii i kryptoanalizy", "f": "Wykład", "t": "Jakóbik Agnieszka", "g": "CY", "r": "ONLINE", "a": "19:45", "b": "21:15", "day": 4, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-09", "2026-10-16", "2026-10-23", "2026-10-30", "2026-11-06", "2026-11-13", "2026-11-20", "2026-11-27", "2026-12-04", "2026-12-11", "2026-12-18", "2027-01-08", "2027-01-15", "2027-01-22", "2027-01-29"], "c": "Zdalnie"}]}, "CY_GL2": {"spec": "CY", "lab": 2, "plannerGroups": ["CY", "CY_L2", "CY_GL2", "CY_C1"], "meta": {"excel": "30.09.2026 00:29", "planner": "2026-10-03T10:23:07.264Z", "origin": "planner"}, "classes": [{"s": "Zaawansowane techniki kryptografii i kryptoanalizy", "f": "Laboratorium", "t": "Cywicka Dominika", "g": "CY_L2", "r": "114", "a": "11:00", "b": "12:30", "day": 0, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-09", "2026-11-16", "2026-11-23", "2026-11-30", "2026-12-07", "2026-12-14", "2026-12-21", "2027-01-11", "2027-01-18", "2027-01-25", "2027-02-01"], "c": "Warszawska"}, {"s": "Zaawansowane techniki kryptografii i kryptoanalizy", "f": "Projekt", "t": "Jakóbik Agnieszka", "g": "CY_L2", "r": "131", "a": "18:00", "b": "19:30", "day": 0, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-05", "2026-10-19", "2026-11-16", "2026-11-30", "2026-12-14", "2027-01-11", "2027-01-25"], "c": "Warszawska"}, {"s": "Testy penetracyjne", "f": "Wykład", "t": "Wójcik Łukasz", "g": "CY", "r": "ONLINE", "a": "07:30", "b": "09:00", "day": 1, "x": "", "n": "Wykłady do 27.11; łącznie 15 godz.", "o": true, "w": "B", "d": ["2026-10-06", "2026-10-20", "2026-11-03", "2026-11-17"], "c": "Zdalnie"}, {"s": "Psychologia motywacji, emocji i radzenia sobie ze stresem", "f": "Wykład", "t": "Karolina Duniec", "g": "CY + DS + SIRR", "r": "ONLINE", "a": "09:15", "b": "10:45", "day": 1, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-06", "2026-11-03", "2026-11-17", "2026-12-01", "2026-12-15", "2027-01-12", "2027-01-26"], "c": "Zdalnie"}, {"s": "Programowanie równoległe i rozproszone", "f": "Wykład", "t": "Krużel Filip", "g": "CY + DS + SIRR", "r": "ONLINE", "a": "11:00", "b": "12:30", "day": 1, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-06", "2026-10-13", "2026-10-20", "2026-10-27", "2026-11-03", "2026-11-10", "2026-11-17"], "c": "Zdalnie"}, {"s": "Zarządzanie projektem informatycznym", "f": "Wykład", "t": "Stanuszek Marek", "g": "CY + DS + SIRR", "r": "ONLINE", "a": "12:45", "b": "14:15", "day": 1, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-06", "2026-10-20", "2026-11-03", "2026-11-17", "2026-12-01", "2026-12-15", "2027-01-12", "2027-01-26"], "c": "Zdalnie"}, {"s": "Bezpieczeństwo w sieciach telekomunikacyjnych", "f": "Laboratorium", "t": "Żelasko Dariusz", "g": "CY_L2", "r": "L1", "a": "16:00", "b": "17:30", "day": 1, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-06", "2026-10-13", "2026-10-20", "2026-10-27", "2026-11-03", "2026-11-10", "2026-11-17", "2026-11-24", "2026-12-01", "2026-12-08", "2026-12-15", "2026-12-22", "2027-01-12", "2027-01-19", "2027-01-26"], "c": "Czyżyny"}, {"s": "Testy penetracyjne", "f": "Laboratorium", "t": "Wójcik Łukasz", "g": "CY_L2", "r": "L2", "a": "17:45", "b": "19:15", "day": 1, "x": "", "n": "", "o": true, "w": "A + B", "d": ["2026-10-06", "2026-10-13", "2026-10-20", "2026-10-27", "2026-11-03", "2026-11-10", "2026-11-17", "2026-11-24", "2026-12-01", "2026-12-08", "2026-12-15", "2026-12-22", "2027-01-12", "2027-01-19", "2027-01-26"], "c": "Czyżyny"}, {"s": "Programowanie równoległe i rozproszone", "f": "Laboratorium", "t": "Orlof Jerzy", "g": "CY_L2", "r": "L5", "a": "11:30", "b": "13:00", "day": 2, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-07", "2026-10-21", "2026-11-04", "2026-11-18", "2026-12-02", "2026-12-16", "2027-01-13", "2027-01-27"], "c": "Czyżyny"}, {"s": "Programowanie równoległe i rozproszone", "f": "Projekt", "t": "Orlof Jerzy", "g": "CY_L2", "r": "L5", "a": "14:30", "b": "16:00", "day": 2, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-07", "2026-10-21", "2026-11-04", "2026-11-18", "2026-12-02", "2026-12-16", "2027-01-13", "2027-01-27"], "c": "Czyżyny"}, {"s": "Metody sztucznej inteligencji w cyberbezpieczeństwie", "f": "Wykład", "t": "Kołodziej Joanna", "g": "CY", "r": "ONLINE", "a": "19:45", "b": "21:15", "day": 2, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-07", "2026-10-14", "2026-10-21", "2026-10-28", "2026-11-04", "2026-11-18", "2026-11-25", "2026-12-02", "2026-12-09", "2026-12-16", "2027-01-13", "2027-01-20", "2027-01-27", "2027-01-28", "2027-02-02"], "c": "Zdalnie"}, {"s": "Zarządzanie projektem informatycznym", "f": "Projekt", "t": "Gaża Łukasz", "g": "CY_L2", "r": "L3", "a": "09:15", "b": "10:45", "day": 3, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-08", "2026-10-15", "2026-10-22", "2026-10-29", "2026-11-05", "2026-11-12", "2026-11-19", "2026-11-26", "2026-12-03", "2026-12-10", "2026-12-17", "2027-01-07", "2027-01-14", "2027-01-21"], "c": "Czyżyny"}, {"s": "Psychologia motywacji, emocji i radzenia sobie ze stresem", "f": "Ćwiczenia", "t": "Karolina Duniec", "g": "CY_C1", "r": "W1", "a": "11:00", "b": "12:30", "day": 3, "x": "", "n": "", "o": false, "w": "A", "d": ["2026-10-29", "2026-11-12", "2026-11-26", "2026-12-10", "2027-01-07", "2027-01-21"], "c": "Czyżyny"}, {"s": "Bezpieczeństwo i hardening systemów operacyjnych", "f": "Laboratorium", "t": "Mycek Andrzej", "g": "CY_L2", "r": "L4", "a": "18:00", "b": "19:30", "day": 3, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-08", "2026-10-15", "2026-10-22", "2026-10-29", "2026-11-05", "2026-11-12", "2026-11-19", "2026-11-26", "2026-12-03", "2026-12-10", "2026-12-17", "2027-01-07", "2027-01-14", "2027-01-21"], "c": "Czyżyny"}, {"s": "Metody sztucznej inteligencji w cyberbezpieczeństwie", "f": "Projekt", "t": "Kluczkiewicz Krystian", "g": "CY_L2", "r": "L3", "a": "19:45", "b": "21:15", "day": 3, "x": "", "n": "", "o": false, "w": "A", "d": ["2026-10-15", "2026-10-29", "2026-11-12", "2026-11-26", "2026-12-10", "2027-01-07", "2027-01-21"], "c": "Czyżyny"}, {"s": "Bezpieczeństwo i hardening systemów operacyjnych", "f": "Wykład", "t": "Mycek Andrzej", "g": "CY", "r": "ONLINE", "a": "16:15", "b": "17:45", "day": 4, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-09", "2026-10-23", "2026-11-06", "2026-11-20", "2026-12-04", "2026-12-18", "2027-01-15", "2027-01-29"], "c": "Zdalnie"}, {"s": "Testy penetracyjne", "f": "Wykład", "t": "Wójcik Łukasz", "g": "CY", "r": "ONLINE", "a": "16:15", "b": "17:45", "day": 4, "x": "", "n": "Wykłady do 27.11; łącznie 15 godz.", "o": true, "w": "A", "d": ["2026-10-16", "2026-10-30", "2026-11-13", "2026-11-27"], "c": "Zdalnie"}, {"s": "Bezpieczeństwo w sieciach telekomunikacyjnych", "f": "Wykład", "t": "Żelasko Dariusz", "g": "CY", "r": "ONLINE", "a": "18:00", "b": "19:30", "day": 4, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-09", "2026-10-16", "2026-10-23", "2026-10-30", "2026-11-06", "2026-11-13", "2026-11-20", "2026-11-27", "2026-12-04", "2026-12-11", "2026-12-18", "2027-01-08", "2027-01-15", "2027-01-22", "2027-01-29"], "c": "Zdalnie"}, {"s": "Zaawansowane techniki kryptografii i kryptoanalizy", "f": "Wykład", "t": "Jakóbik Agnieszka", "g": "CY", "r": "ONLINE", "a": "19:45", "b": "21:15", "day": 4, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-09", "2026-10-16", "2026-10-23", "2026-10-30", "2026-11-06", "2026-11-13", "2026-11-20", "2026-11-27", "2026-12-04", "2026-12-11", "2026-12-18", "2027-01-08", "2027-01-15", "2027-01-22", "2027-01-29"], "c": "Zdalnie"}]}, "CY_GL3": {"spec": "CY", "lab": 3, "plannerGroups": ["CY", "CY_L3", "CY_GL3", "CY_C2"], "meta": {"excel": "30.09.2026 00:29", "planner": "2026-10-03T10:23:07.264Z", "origin": "planner"}, "classes": [{"s": "Zaawansowane techniki kryptografii i kryptoanalizy", "f": "Laboratorium", "t": "Cywicka Dominika", "g": "CY_L3", "r": "114", "a": "09:15", "b": "10:45", "day": 0, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-09", "2026-11-16", "2026-11-23", "2026-11-30", "2026-12-07", "2026-12-14", "2026-12-21", "2027-01-11", "2027-01-18", "2027-01-25", "2027-02-01"], "c": "Warszawska"}, {"s": "Bezpieczeństwo w sieciach telekomunikacyjnych", "f": "Laboratorium", "t": "Stach Tomasz", "g": "CY_L3", "r": "114", "a": "16:15", "b": "17:45", "day": 0, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-09", "2026-11-16", "2026-11-23", "2026-11-30", "2026-12-07", "2026-12-14", "2026-12-21", "2027-01-11", "2027-01-18", "2027-01-25", "2027-02-01"], "c": "Warszawska"}, {"s": "Zaawansowane techniki kryptografii i kryptoanalizy", "f": "Projekt", "t": "Jakóbik Agnieszka", "g": "CY_L3", "r": "131", "a": "18:00", "b": "19:30", "day": 0, "x": "", "n": "", "o": false, "w": "A", "d": ["2026-10-12", "2026-10-26", "2026-11-09", "2026-11-23", "2026-12-07", "2026-12-21", "2027-01-18", "2027-02-01"], "c": "Warszawska"}, {"s": "Testy penetracyjne", "f": "Wykład", "t": "Wójcik Łukasz", "g": "CY", "r": "ONLINE", "a": "07:30", "b": "09:00", "day": 1, "x": "", "n": "Wykłady do 27.11; łącznie 15 godz.", "o": true, "w": "B", "d": ["2026-10-06", "2026-10-20", "2026-11-03", "2026-11-17"], "c": "Zdalnie"}, {"s": "Psychologia motywacji, emocji i radzenia sobie ze stresem", "f": "Wykład", "t": "Karolina Duniec", "g": "CY + DS + SIRR", "r": "ONLINE", "a": "09:15", "b": "10:45", "day": 1, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-06", "2026-11-03", "2026-11-17", "2026-12-01", "2026-12-15", "2027-01-12", "2027-01-26"], "c": "Zdalnie"}, {"s": "Programowanie równoległe i rozproszone", "f": "Wykład", "t": "Krużel Filip", "g": "CY + DS + SIRR", "r": "ONLINE", "a": "11:00", "b": "12:30", "day": 1, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-06", "2026-10-13", "2026-10-20", "2026-10-27", "2026-11-03", "2026-11-10", "2026-11-17"], "c": "Zdalnie"}, {"s": "Zarządzanie projektem informatycznym", "f": "Wykład", "t": "Stanuszek Marek", "g": "CY + DS + SIRR", "r": "ONLINE", "a": "12:45", "b": "14:15", "day": 1, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-06", "2026-10-20", "2026-11-03", "2026-11-17", "2026-12-01", "2026-12-15", "2027-01-12", "2027-01-26"], "c": "Zdalnie"}, {"s": "Programowanie równoległe i rozproszone", "f": "Projekt", "t": "Orlof Jerzy", "g": "CY_L3", "r": "W1", "a": "16:00", "b": "17:30", "day": 1, "x": "", "n": "", "o": false, "w": "A", "d": ["2026-10-13", "2026-10-27", "2026-11-10", "2026-11-24", "2026-12-08", "2026-12-22", "2027-01-19"], "c": "Czyżyny"}, {"s": "Bezpieczeństwo i hardening systemów operacyjnych", "f": "Laboratorium", "t": "Łukaczyk Maryna", "g": "CY_L3", "r": "L5", "a": "19:30", "b": "21:00", "day": 1, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-06", "2026-10-13", "2026-10-20", "2026-10-27", "2026-11-03", "2026-11-10", "2026-11-17", "2026-11-24", "2026-12-01", "2026-12-08", "2026-12-15", "2026-12-22", "2027-01-12", "2027-01-19", "2027-01-26"], "c": "Czyżyny"}, {"s": "Programowanie równoległe i rozproszone", "f": "Laboratorium", "t": "Orlof Jerzy", "g": "CY_L3", "r": "L5", "a": "14:30", "b": "16:00", "day": 2, "x": "", "n": "", "o": false, "w": "A", "d": ["2026-10-14", "2026-10-28", "2026-11-25", "2026-12-09", "2027-01-20", "2027-01-28", "2027-02-02"], "c": "Czyżyny"}, {"s": "Metody sztucznej inteligencji w cyberbezpieczeństwie", "f": "Wykład", "t": "Kołodziej Joanna", "g": "CY", "r": "ONLINE", "a": "19:45", "b": "21:15", "day": 2, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-07", "2026-10-14", "2026-10-21", "2026-10-28", "2026-11-04", "2026-11-18", "2026-11-25", "2026-12-02", "2026-12-09", "2026-12-16", "2027-01-13", "2027-01-20", "2027-01-27", "2027-01-28", "2027-02-02"], "c": "Zdalnie"}, {"s": "Psychologia motywacji, emocji i radzenia sobie ze stresem", "f": "Ćwiczenia", "t": "Karolina Duniec", "g": "CY_C2", "r": "W1", "a": "11:00", "b": "12:30", "day": 3, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-08", "2026-10-22", "2026-11-05", "2026-11-19", "2026-12-03", "2027-01-14"], "c": "Czyżyny"}, {"s": "Testy penetracyjne", "f": "Laboratorium", "t": "Wójcik Łukasz", "g": "CY_L3", "r": "L5", "a": "16:15", "b": "17:45", "day": 3, "x": "", "n": "", "o": true, "w": "A + B", "d": ["2026-10-08", "2026-10-15", "2026-10-22", "2026-10-29", "2026-11-05", "2026-11-12", "2026-11-19", "2026-11-26", "2026-12-03", "2026-12-10", "2026-12-17", "2027-01-07", "2027-01-14", "2027-01-21"], "c": "Czyżyny"}, {"s": "Metody sztucznej inteligencji w cyberbezpieczeństwie", "f": "Projekt", "t": "Kluczkiewicz Krystian", "g": "CY_L3", "r": "L3", "a": "18:00", "b": "19:30", "day": 3, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-08", "2026-10-22", "2026-11-05", "2026-11-19", "2026-12-03", "2026-12-17", "2027-01-14"], "c": "Czyżyny"}, {"s": "Zarządzanie projektem informatycznym", "f": "Projekt", "t": "Gaża Łukasz", "g": "CY_L3", "r": "L4", "a": "09:15", "b": "10:45", "day": 4, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-09", "2026-10-16", "2026-10-23", "2026-10-30", "2026-11-06", "2026-11-13", "2026-11-20", "2026-11-27", "2026-12-04", "2026-12-11", "2026-12-18", "2027-01-08", "2027-01-15", "2027-01-22", "2027-01-29"], "c": "Czyżyny"}, {"s": "Bezpieczeństwo i hardening systemów operacyjnych", "f": "Wykład", "t": "Mycek Andrzej", "g": "CY", "r": "ONLINE", "a": "16:15", "b": "17:45", "day": 4, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-09", "2026-10-23", "2026-11-06", "2026-11-20", "2026-12-04", "2026-12-18", "2027-01-15", "2027-01-29"], "c": "Zdalnie"}, {"s": "Testy penetracyjne", "f": "Wykład", "t": "Wójcik Łukasz", "g": "CY", "r": "ONLINE", "a": "16:15", "b": "17:45", "day": 4, "x": "", "n": "Wykłady do 27.11; łącznie 15 godz.", "o": true, "w": "A", "d": ["2026-10-16", "2026-10-30", "2026-11-13", "2026-11-27"], "c": "Zdalnie"}, {"s": "Bezpieczeństwo w sieciach telekomunikacyjnych", "f": "Wykład", "t": "Żelasko Dariusz", "g": "CY", "r": "ONLINE", "a": "18:00", "b": "19:30", "day": 4, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-09", "2026-10-16", "2026-10-23", "2026-10-30", "2026-11-06", "2026-11-13", "2026-11-20", "2026-11-27", "2026-12-04", "2026-12-11", "2026-12-18", "2027-01-08", "2027-01-15", "2027-01-22", "2027-01-29"], "c": "Zdalnie"}, {"s": "Zaawansowane techniki kryptografii i kryptoanalizy", "f": "Wykład", "t": "Jakóbik Agnieszka", "g": "CY", "r": "ONLINE", "a": "19:45", "b": "21:15", "day": 4, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-09", "2026-10-16", "2026-10-23", "2026-10-30", "2026-11-06", "2026-11-13", "2026-11-20", "2026-11-27", "2026-12-04", "2026-12-11", "2026-12-18", "2027-01-08", "2027-01-15", "2027-01-22", "2027-01-29"], "c": "Zdalnie"}]}, "CY_GL4": {"spec": "CY", "lab": 4, "plannerGroups": ["CY", "CY_L4", "CY_GL4", "CY_C2"], "meta": {"excel": "30.09.2026 00:29", "planner": "2026-10-03T10:23:07.264Z", "origin": "planner"}, "classes": [{"s": "Zaawansowane techniki kryptografii i kryptoanalizy", "f": "Laboratorium", "t": "Cywicka Dominika", "g": "CY_L4", "r": "114", "a": "14:30", "b": "16:00", "day": 0, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-09", "2026-11-16", "2026-11-23", "2026-11-30", "2026-12-07", "2026-12-14", "2026-12-21", "2027-01-11", "2027-01-18", "2027-01-25", "2027-02-01"], "c": "Warszawska"}, {"s": "Zaawansowane techniki kryptografii i kryptoanalizy", "f": "Projekt", "t": "Jakóbik Agnieszka", "g": "CY_L4", "r": "131", "a": "16:15", "b": "17:45", "day": 0, "x": "", "n": "", "o": false, "w": "A", "d": ["2026-10-12", "2026-10-26", "2026-11-09", "2026-11-23", "2026-12-07", "2026-12-21", "2027-01-18", "2027-02-01"], "c": "Warszawska"}, {"s": "Bezpieczeństwo w sieciach telekomunikacyjnych", "f": "Laboratorium", "t": "Stach Tomasz", "g": "CY_L4", "r": "114", "a": "18:00", "b": "19:30", "day": 0, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-09", "2026-11-16", "2026-11-23", "2026-11-30", "2026-12-07", "2026-12-14", "2026-12-21", "2027-01-11", "2027-01-18", "2027-01-25", "2027-02-01"], "c": "Warszawska"}, {"s": "Bezpieczeństwo i hardening systemów operacyjnych", "f": "Laboratorium", "t": "Łukaczyk Maryna", "g": "CY_L4", "r": "114", "a": "19:45", "b": "21:15", "day": 0, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-09", "2026-11-16", "2026-11-23", "2026-11-30", "2026-12-07", "2026-12-14", "2026-12-21", "2027-01-11", "2027-01-18", "2027-01-25", "2027-02-01"], "c": "Warszawska"}, {"s": "Testy penetracyjne", "f": "Wykład", "t": "Wójcik Łukasz", "g": "CY", "r": "ONLINE", "a": "07:30", "b": "09:00", "day": 1, "x": "", "n": "Wykłady do 27.11; łącznie 15 godz.", "o": true, "w": "B", "d": ["2026-10-06", "2026-10-20", "2026-11-03", "2026-11-17"], "c": "Zdalnie"}, {"s": "Psychologia motywacji, emocji i radzenia sobie ze stresem", "f": "Wykład", "t": "Karolina Duniec", "g": "CY + DS + SIRR", "r": "ONLINE", "a": "09:15", "b": "10:45", "day": 1, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-06", "2026-11-03", "2026-11-17", "2026-12-01", "2026-12-15", "2027-01-12", "2027-01-26"], "c": "Zdalnie"}, {"s": "Programowanie równoległe i rozproszone", "f": "Wykład", "t": "Krużel Filip", "g": "CY + DS + SIRR", "r": "ONLINE", "a": "11:00", "b": "12:30", "day": 1, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-06", "2026-10-13", "2026-10-20", "2026-10-27", "2026-11-03", "2026-11-10", "2026-11-17"], "c": "Zdalnie"}, {"s": "Zarządzanie projektem informatycznym", "f": "Wykład", "t": "Stanuszek Marek", "g": "CY + DS + SIRR", "r": "ONLINE", "a": "12:45", "b": "14:15", "day": 1, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-06", "2026-10-20", "2026-11-03", "2026-11-17", "2026-12-01", "2026-12-15", "2027-01-12", "2027-01-26"], "c": "Zdalnie"}, {"s": "Programowanie równoległe i rozproszone", "f": "Projekt", "t": "Orlof Jerzy", "g": "CY_L4", "r": "W1", "a": "16:00", "b": "17:30", "day": 1, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-06", "2026-10-20", "2026-11-03", "2026-11-17", "2026-12-01", "2026-12-15", "2027-01-12", "2027-01-26"], "c": "Czyżyny"}, {"s": "Programowanie równoległe i rozproszone", "f": "Laboratorium", "t": "Orlof Jerzy", "g": "CY_L4", "r": "L5", "a": "16:15", "b": "17:45", "day": 2, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-07", "2026-10-21", "2026-11-04", "2026-11-18", "2026-12-02", "2026-12-16", "2027-01-13", "2027-01-27"], "c": "Czyżyny"}, {"s": "Metody sztucznej inteligencji w cyberbezpieczeństwie", "f": "Wykład", "t": "Kołodziej Joanna", "g": "CY", "r": "ONLINE", "a": "19:45", "b": "21:15", "day": 2, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-07", "2026-10-14", "2026-10-21", "2026-10-28", "2026-11-04", "2026-11-18", "2026-11-25", "2026-12-02", "2026-12-09", "2026-12-16", "2027-01-13", "2027-01-20", "2027-01-27", "2027-01-28", "2027-02-02"], "c": "Zdalnie"}, {"s": "Psychologia motywacji, emocji i radzenia sobie ze stresem", "f": "Ćwiczenia", "t": "Karolina Duniec", "g": "CY_C2", "r": "W1", "a": "11:00", "b": "12:30", "day": 3, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-08", "2026-10-22", "2026-11-05", "2026-11-19", "2026-12-03", "2027-01-14"], "c": "Czyżyny"}, {"s": "Testy penetracyjne", "f": "Laboratorium", "t": "Wójcik Łukasz", "g": "CY_L4", "r": "L5", "a": "18:00", "b": "19:30", "day": 3, "x": "", "n": "", "o": true, "w": "A + B", "d": ["2026-10-08", "2026-10-15", "2026-10-22", "2026-10-29", "2026-11-05", "2026-11-12", "2026-11-19", "2026-11-26", "2026-12-03", "2026-12-10", "2026-12-17", "2027-01-07", "2027-01-14", "2027-01-21"], "c": "Czyżyny"}, {"s": "Metody sztucznej inteligencji w cyberbezpieczeństwie", "f": "Projekt", "t": "Kluczkiewicz Krystian", "g": "CY_L4", "r": "L3", "a": "19:45", "b": "21:15", "day": 3, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-08", "2026-10-22", "2026-11-05", "2026-11-19", "2026-12-03", "2026-12-17", "2027-01-14"], "c": "Czyżyny"}, {"s": "Zarządzanie projektem informatycznym", "f": "Projekt", "t": "Gaża Łukasz", "g": "CY_L4", "r": "L4", "a": "11:00", "b": "12:30", "day": 4, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-09", "2026-10-16", "2026-10-23", "2026-10-30", "2026-11-06", "2026-11-13", "2026-11-20", "2026-11-27", "2026-12-04", "2026-12-11", "2026-12-18", "2027-01-08", "2027-01-15", "2027-01-22", "2027-01-29"], "c": "Czyżyny"}, {"s": "Bezpieczeństwo i hardening systemów operacyjnych", "f": "Wykład", "t": "Mycek Andrzej", "g": "CY", "r": "ONLINE", "a": "16:15", "b": "17:45", "day": 4, "x": "", "n": "", "o": false, "w": "B", "d": ["2026-10-09", "2026-10-23", "2026-11-06", "2026-11-20", "2026-12-04", "2026-12-18", "2027-01-15", "2027-01-29"], "c": "Zdalnie"}, {"s": "Testy penetracyjne", "f": "Wykład", "t": "Wójcik Łukasz", "g": "CY", "r": "ONLINE", "a": "16:15", "b": "17:45", "day": 4, "x": "", "n": "Wykłady do 27.11; łącznie 15 godz.", "o": true, "w": "A", "d": ["2026-10-16", "2026-10-30", "2026-11-13", "2026-11-27"], "c": "Zdalnie"}, {"s": "Bezpieczeństwo w sieciach telekomunikacyjnych", "f": "Wykład", "t": "Żelasko Dariusz", "g": "CY", "r": "ONLINE", "a": "18:00", "b": "19:30", "day": 4, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-09", "2026-10-16", "2026-10-23", "2026-10-30", "2026-11-06", "2026-11-13", "2026-11-20", "2026-11-27", "2026-12-04", "2026-12-11", "2026-12-18", "2027-01-08", "2027-01-15", "2027-01-22", "2027-01-29"], "c": "Zdalnie"}, {"s": "Zaawansowane techniki kryptografii i kryptoanalizy", "f": "Wykład", "t": "Jakóbik Agnieszka", "g": "CY", "r": "ONLINE", "a": "19:45", "b": "21:15", "day": 4, "x": "", "n": "", "o": false, "w": "A + B", "d": ["2026-10-09", "2026-10-16", "2026-10-23", "2026-10-30", "2026-11-06", "2026-11-13", "2026-11-20", "2026-11-27", "2026-12-04", "2026-12-11", "2026-12-18", "2027-01-08", "2027-01-15", "2027-01-22", "2027-01-29"], "c": "Zdalnie"}]}}, "source": {"level": "II", "sem": "2", "spec": "CY", "season": "ZIMA", "year": "2026/2027", "label": "II st. sem. 2 CY", "excel": "30.09.2026 00:29"}}</script>
+<script>
+const MAIN_SRC=document.currentScript?document.currentScript.textContent:"";
+const SHELL=document.getElementById("app").outerHTML;
+const STYLE=document.getElementById("st").textContent;
+const DEFAULT_GROUP="CY_GL4", GROUP_FILTER=/^CY_GL\d+$/;
+const SPEC_NAMES={CY:"Cyberbezpieczeństwo",DS:"specjalność DS",SIRR:"specjalność SIRR"};
+const PLANNER_URL="https://ii.pk.edu.pl/~fkruzel/fk-planer-lti/public/plan-st/";
+const SNAPSHOT_URL=PLANNER_URL+"snapshot.php";
+const LS_KEY="pk-timetable-v2", LS_GROUP="pk-timetable-group";
+const SKEL='<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>';
+const IS_ARTIFACT=!!(window.claude&&typeof window.claude.use==="function");
+
+/* ===== schedule core (pure functions, no DOM) ===== */
+const FORMS={W:"Wykład",L:"Laboratorium",C:"Ćwiczenia",P:"Projekt",S:"Seminarium","W/C":"Wykład/Ćwiczenia"};
+const DAYNAMES=["PONIEDZIAŁEK","WTOREK","ŚRODA","CZWARTEK","PIĄTEK"];
+const dUTC=s=>{const[y,m,d]=s.split("-").map(Number);return Date.UTC(y,m-1,d)};
+const isoUTC=t=>new Date(t).toISOString().slice(0,10);
+const toMinutes=t=>{const[h,m]=t.split(":").map(Number);return h*60+m};
+const hhmm=n=>`${String(Math.floor(n/60)).padStart(2,"0")}:${String(n%60).padStart(2,"0")}`;
+
+function parityOf(s,cal){return ((Math.floor((dUTC(s)-dUTC(cal.parityAnchor))/(7*864e5))%2)+2)%2===0?"A":"B"}
+function isClosed(s,cal){return (cal.closures||[]).some(x=>s>=x.from&&s<=x.to)}
+function campusOf(room,rooms){
+  if(!room||/^online$/i.test(room)||/zdaln/i.test(room))return "Zdalnie";
+  return (rooms&&rooms[room])||"?";
+}
+function rhythmOf(weeks){const m=/^\s*([AB])\s*(;|$)/.exec(weeks||"");return m?m[1]:null}
+
+/* All dates a weekly/biweekly class takes place, following the PK calendar. */
+function buildDates(c,cal){
+  const out=[], excl=new Set(), wk=rhythmOf(c.x);
+  const bez=/bez ([\d.,\s]+)/.exec(c.x||"");
+  if(bez)bez[1].split(",").map(s=>s.trim()).filter(Boolean).forEach(s=>{const[dd,mm]=s.split(".").map(Number);const y=mm<8?Number(cal.end.slice(0,4)):Number(cal.start.slice(0,4));excl.add(`${y}-${String(mm).padStart(2,"0")}-${String(dd).padStart(2,"0")}`)});
+  let last=cal.end;
+  const until=/do (\d\d)\.(\d\d)/.exec(c.n||"");
+  if(until){const mm=Number(until[2]);const y=mm<8?cal.end.slice(0,4):cal.start.slice(0,4);const u=`${y}-${until[2]}-${until[1]}`;if(u<last)last=u}
+  const repl=cal.replacementDays||{}, a=toMinutes(c.a), b=toMinutes(c.b);
+  for(let t=dUTC(cal.regularStationaryStart||cal.start);t<=dUTC(last);t+=864e5){
+    const s=isoUTC(t), dow=(new Date(t).getUTCDay()+6)%7;
+    if(dow>4||isClosed(s,cal)||excl.has(s))continue;
+    const eff=repl[s]||s, edow=(new Date(dUTC(eff)).getUTCDay()+6)%7;
+    if(edow!==c.day)continue;
+    if(wk&&parityOf(eff,cal)!==wk)continue;
+    if((cal.partialClosures||[]).some(p=>p.date===s&&a<p.end&&b>p.start))continue;
+    out.push(s);
+  }
+  return out;
+}
+
+/* Read the timetable workbook: sheet = {get(r,c), merges:[{s:{r,c},e:{r,c}}], maxR, maxC} (0-based). */
+function parseSheet(sheet,opt){
+  const G=opt.group, txt=(r,c)=>{const v=sheet.get(r,c);return v==null?"":String(v).replace(/\r\n?/g,"\n")};
+  let hr=-1,gc=-1;
+  for(let r=0;r<=Math.min(sheet.maxR,40)&&hr<0;r++)for(let c=0;c<=sheet.maxC;c++)if(txt(r,c).trim()===G){hr=r;gc=c;break}
+  if(hr<0)throw new Error(`Couldn't find the "${G}" column in this file.`);
+  // start of this specialization's block (label row above the group header)
+  let bs=-1;for(let c=gc;c>=0;c--){if(txt(hr-1,c).trim()){bs=c;break}}
+  let be=sheet.maxC;for(let c=gc+1;c<=sheet.maxC;c++){if(txt(hr-1,c).trim()){be=c-1;break}}
+  let ec=-1;for(let c=gc+1;c<=be;c++)if(/^obieralne/i.test(txt(hr,c).trim())){ec=c;break}
+  // day-name column left of the block
+  let dc=-1;for(let c=bs-1;c>=0&&dc<0;c--)for(let r=hr+1;r<=sheet.maxR;r++)if(DAYNAMES.includes(txt(r,c).trim())){dc=c;break}
+  if(dc<0)throw new Error("Couldn't find the day column in this file.");
+  const mm=new Map();(sheet.merges||[]).forEach(m=>mm.set(m.s.r+","+m.s.c,m));
+  let stamp="";for(let r=0;r<hr&&!stamp;r++)for(let c=0;c<=sheet.maxC;c++){const m=/zapis (\d\d\.\d\d\.\d{4}) · (\d\d:\d\d)/.exec(txt(r,c));if(m){stamp=m[1]+" "+m[2];break}}
+  const blockLabel=txt(hr-1,bs).trim();
+  const lm=/^(I{1,3})\s*st\.?\s*sem\.?\s*(\d+)\s+([A-Za-z]+)/.exec(blockLabel);
+  let season="",year="";for(let r=0;r<hr&&!season;r++)for(let c=dc;c<=sheet.maxC;c++){const m=/(ZIMA|LATO)\s+(\d{4}\/\d{4})/i.exec(txt(r,c));if(m){season=m[1].toUpperCase();year=m[2];break}}
+  const source=lm?{level:lm[1],sem:lm[2],spec:lm[3],season,year,label:blockLabel}:null;
+  const classes=[];let day=-1;const seen=new Set();
+  for(let r=hr+1;r<=sheet.maxR;r++){
+    const dn=txt(r,dc).trim();if(DAYNAMES.includes(dn))day=DAYNAMES.indexOf(dn);
+    if(day<0)continue;
+    for(let c=bs;c<=(ec>=0?ec:be);c++){
+      const v=txt(r,c);if(!v.trim())continue;
+      const m=mm.get(r+","+c), c1=m?m.s.c:c, c2=m?m.e.c:c, elective=c===ec;
+      if(!elective&&!(c1<=gc&&gc<=c2))continue;
+      for(const blk of v.split(/\n\s*\n/)){
+        const ln=blk.split("\n").map(s=>s.trim()).filter(Boolean);if(ln.length<4)continue;
+        if(elective&&/_GL\d/.test(ln[2])&&!ln[2].split(/[\s,+/]+/).includes(G))continue;
+        const i=ln[0].lastIndexOf(" — ");if(i<0)continue;
+        const t=/(\d\d:\d\d)\s*[–-]\s*(\d\d:\d\d)\s*·\s*(.*)/.exec(ln[3]);if(!t)continue;
+        const room=t[3].replace(/^s\.\s*/,"").trim();
+        const k=[day,t[1],ln[0],ln[2]].join("|");if(seen.has(k))continue;seen.add(k);
+        const typ=ln[0].slice(i+3).trim();
+        classes.push({s:ln[0].slice(0,i).trim(),f:FORMS[typ]||typ,t:ln[1],g:ln[2],r:room==="ONLINE"?"ONLINE":room,a:t[1],b:t[2],day,x:ln[4]||"",n:ln.slice(5).join(" "),o:elective});
+      }
+    }
+  }
+  if(!classes.length)throw new Error(`No classes for ${G} were found in this file.`);
+  return {classes,blockLabel,stamp,source};
+}
+
+function finalize(classes,cal,rooms){
+  return classes.map(c=>{const d=c.d&&!c.x?c.d:buildDates(c,cal);const w=rhythmOf(c.x)||(c.w&&c.w!=="A + B"?c.w:null);
+    return {...c,c:campusOf(c.r,rooms),w:w||"A + B",d}}).sort((p,q)=>p.day-q.day||p.a.localeCompare(q.a));
+}
+
+/* FK Planer snapshot -> classes. events: calendarExport.events (UTC times). */
+const WAW=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Warsaw",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false});
+function wawParts(z){const t=Date.UTC(+z.slice(0,4),+z.slice(4,6)-1,+z.slice(6,8),+z.slice(9,11),+z.slice(11,13));const p={};WAW.formatToParts(new Date(t)).forEach(x=>p[x.type]=x.value);return {date:`${p.year}-${p.month}-${p.day}`,time:`${p.hour==="24"?"00":p.hour}:${p.minute}`}}
+function plannerToClasses(snap,prev,opt){
+  const st=snap.state||{}, cal=st.academicCalendar, rooms={};
+  (st.rooms||[]).forEach(r=>{if(r&&r.code)rooms[r.code]=r.campus});
+  const want=new Set(opt.plannerGroups), groups=new Map();
+  // Only events of the semester/specialization named in the Excel file (e.g. "II st. sem. 2 CY").
+  let inCohort=()=>true;
+  if(opt.source&&Array.isArray(st.blocks)&&st.blocks.length){
+    const src=opt.source, specs=src.spec==="SIRR"?"SIRR|SIR":src.spec.replace(/[^A-Za-z]/g,"");
+    const re=new RegExp(`^${src.level} stopień stac\\.? sem\\. ${src.sem}(?:W\\d+)? (?:${specs})(?: / |$)`);
+    const ok=new Map();st.blocks.forEach(b=>ok.set(b.id,[b.cohort,...(b.additionalCohorts||[])].some(c=>re.test(String(c||"")))));
+    inCohort=e=>ok.get(e.blockId)===true;
+  }
+  for(const e of (snap.calendarExport&&snap.calendarExport.events)||[]){
+    if(!inCohort(e))continue;
+    const desc=String(e.description||"").split("\n"), grp=(desc[1]||"").trim();
+    const toks=grp.split(/\s*[+,/]\s*|\s+/).filter(Boolean);
+    if(!toks.some(t=>want.has(t)))continue;
+    const s=wawParts(e.start), en=wawParts(e.end), sum=String(e.summary||""), i=sum.lastIndexOf(" — ");
+    let loc=String(e.location||"").split(" — "), room=(loc[0]||"").replace(/^s\.\s*/,"").trim();
+    if(/online|zdaln/i.test(room)||!room)room="ONLINE";
+    const k=[sum,desc[0],grp,s.time,en.time,room].join("|");
+    if(!groups.has(k))groups.set(k,{sum:i<0?sum:sum.slice(0,i).trim(),typ:i<0?"":sum.slice(i+3).trim(),t:(desc[0]||"").trim(),g:grp,a:s.time,b:en.time,r:room,d:[]});
+    groups.get(k).d.push(s.date);
+  }
+  const out=[];
+  for(const x of groups.values()){
+    x.d=[...new Set(x.d)].sort();
+    const cnt=[0,0,0,0,0,0,0];x.d.forEach(s=>cnt[(new Date(dUTC(s)).getUTCDay()+6)%7]++);
+    const day=cnt.indexOf(Math.max(...cnt));
+    const repl=(cal&&cal.replacementDays)||{};
+    const ps=new Set(cal?x.d.map(s=>parityOf(repl[s]||s,cal)):[]);
+    const f=FORMS[x.typ]||x.typ;
+    const m=prev.find(p=>p.t===x.t&&p.f===f&&p.a===x.a)||prev.find(p=>p.t===x.t&&p.f===f);
+    out.push({s:m?m.s:x.sum,f,t:x.t,g:x.g,r:x.r,a:x.a,b:x.b,day,x:"",n:m?m.n:"",o:m?m.o:false,w:ps.size===1?[...ps][0]:"A + B",d:x.d});
+  }
+  return {classes:out,calendar:cal,rooms};
+}
+
+function occKeys(classes){const m=new Map();classes.forEach(c=>c.d.forEach(d=>m.set(`${d}|${c.a}|${c.s}|${c.f}`,c)));return m}
+function diffClasses(oldC,newC){
+  const o=occKeys(oldC),n=occKeys(newC),added=[],removed=[],moved=[];
+  for(const[k,c]of n){if(!o.has(k))added.push([k,c]);else if(o.get(k).r!==c.r)moved.push([k,c,o.get(k).r])}
+  for(const[k,c]of o)if(!n.has(k))removed.push([k,c]);
+  const byDate=(p,q)=>p[0].localeCompare(q[0]);
+  return {added:added.sort(byDate),removed:removed.sort(byDate),moved:moved.sort(byDate)};
+}
+/* ===== end core ===== */
+
+
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const LONGDAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
+let DATA=JSON.parse($("schedule-data").textContent), fromDevice=false, fkNote="";
+try{const l=JSON.parse(store.get(LS_KEY)||"null");if(l&&l.meta&&l.groups&&l.meta.updated>DATA.meta.updated){DATA=l;fromDevice=true}}catch(e){}
+DATA.groups=Object.fromEntries(Object.entries(DATA.groups).filter(([id])=>GROUP_FILTER.test(id)));
+const glabel=id=>id.replace(/_GL(\d+)$/," · GL$1");
+const pickGroup=id=>DATA.groups[id]?id:(DATA.groups[DEFAULT_GROUP]?DEFAULT_GROUP:Object.keys(DATA.groups)[0]);
+const hashTok=/^#?(CY_GL\d+)$/.exec(location.hash||"");
+let CUR=pickGroup(hashTok?hashTok[1]:(store.get(LS_GROUP)||DEFAULT_GROUP));
+const G=()=>DATA.groups[CUR];
+
+/* ---------- derived state ---------- */
+let EV,CAL,ANCHOR,NWEEKS,byDate,OCC,SPECIAL;
+const local=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const dm=d=>`${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}`;
+const dmS=s=>dm(local(s));
+const weekIdx=d=>Math.floor((new Date(d.getFullYear(),d.getMonth(),d.getDate())-ANCHOR)/(7*864e5));
+const par=i=>i%2===0?"A":"B";
+function derive(){
+  EV=G().classes;CAL=DATA.calendar;ANCHOR=local(CAL.parityAnchor);
+  NWEEKS=Math.floor((local(CAL.end)-ANCHOR)/(7*864e5))+1;
+  byDate={};EV.forEach(e=>e.d.forEach(d=>(byDate[d]=byDate[d]||[]).push(e)));
+  Object.values(byDate).forEach(l=>l.sort((a,b)=>a.a.localeCompare(b.a)));
+  OCC=[];for(const d in byDate)for(const e of byDate[d]){const x=local(d);OCC.push({e,start:new Date(x.getFullYear(),x.getMonth(),x.getDate(),...e.a.split(":").map(Number)),end:new Date(x.getFullYear(),x.getMonth(),x.getDate(),...e.b.split(":").map(Number))})}
+  OCC.sort((a,b)=>a.start-b.start);
+  SPECIAL={};
+  (CAL.partialClosures||[]).forEach(p=>SPECIAL[p.date]=`Break ${hhmm(p.start)}–${hhmm(p.end)}`);
+  Object.entries(CAL.replacementDays||{}).forEach(([d,eff])=>SPECIAL[d]=`Runs the ${LONGDAYS[(local(eff).getDay()+6)%7]} timetable`);
+  SPECIAL[CAL.end]=(SPECIAL[CAL.end]?SPECIAL[CAL.end]+" · ":"")+"Last day of the semester";
+  $("abNote").textContent=`· A/B alternate weekly: A from ${dmS(CAL.parityAnchor)}, B from ${dm(addDays(ANCHOR,7))}`;
+}
+const closedDay=s=>isClosed(s,CAL);
+const where=e=>e.c==="Zdalnie"?"Online":`${e.c} · ${e.r}`;
+const dayOf=e=>e.day!=null?e.day:(local(e.d[0]).getDay()+6)%7;
+
+/* ---------- rendering ---------- */
+let wk;
+function renderWeek(){
+  const now=new Date(), today=iso(now), mon=addDays(ANCHOR,wk*7), p=par(wk), fri=addDays(mon,4);
+  $("wlbl").innerHTML=`<b>Week ${wk+1}</b> · <span class="p${p}">${p}</span><span class="dates">${dm(mon)} – ${dm(fri)}.${fri.getFullYear()}</span>`;
+  $("prev").disabled=wk<=0;$("nextw").disabled=wk>=NWEEKS-1;
+  let h="";
+  for(let i=0;i<5;i++){
+    const d=addDays(mon,i), s=iso(d), list=byDate[s]||[];
+    let inner;
+    if(closedDay(s))inner='<div class="off">Day off</div>';
+    else if(s<(CAL.regularStationaryStart||CAL.start))inner=`<div class="off">Regular classes start ${dmS(CAL.regularStationaryStart||CAL.start)}</div>`;
+    else if(s>CAL.end)inner='<div class="off">After the semester</div>';
+    else if(!list.length)inner='<div class="off">No classes</div>';
+    else inner=list.map(e=>{const st=new Date(d.getFullYear(),d.getMonth(),d.getDate(),...e.a.split(":").map(Number)),en=new Date(d.getFullYear(),d.getMonth(),d.getDate(),...e.b.split(":").map(Number));
+      const cls=en<now?"past":st<=now?"now":"";
+      return `<div class="cls ${cls}"><div class="time">${e.a}<small>${e.b}</small></div><div class="body"><div class="name">${esc(e.s)}${e.o?' <span class="note">(elective)</span>':""}</div><div class="meta"><span class="form">${esc(e.f)}</span><span class="chip c-${esc(e.c)}">${esc(where(e))}</span><span>${esc(e.t)}</span>${e.w!=="A + B"?`<span class="p${e.w}">${e.w}</span>`:`<span class="pM" title="Mandatory: every week (A and B)">M</span>`}</div></div></div>`}).join("");
+    if(SPECIAL[s])inner=`<div class="note">${esc(SPECIAL[s])}</div>`+inner;
+    h+=`<div class="day dw${i}${s===today?" today":""}"><div class="dhead"><div class="dname">${DAYS[i]}</div><div class="ddate">${dm(d)}</div></div><div class="list">${inner}</div></div>`;
+  }
+  $("days").innerHTML=h;
+}
+function defaultWeek(){const now=new Date();const nx=OCC.find(o=>o.end>now);return Math.max(0,Math.min(NWEEKS-1,weekIdx(nx?nx.start:now)))}
+function renderSubjects(){
+  const g={};EV.forEach(e=>(g[e.s]=g[e.s]||[]).push(e));
+  const order=["Wykład","Ćwiczenia","Laboratorium","Projekt"], today=iso(new Date());
+  $("v-subj").innerHTML=Object.keys(g).sort((a,b)=>a.localeCompare(b,"pl")).map(s=>{
+    const rows=g[s].slice().sort((a,b)=>order.indexOf(a.f)-order.indexOf(b.f)).map(e=>{
+      const total=e.d.length,left=e.d.filter(x=>x>=today).length;
+      return `<tr><td><span class="form">${esc(e.f)}</span></td><td class="m">${DAYS[dayOf(e)]} ${e.a}–${e.b}</td><td class="m">${e.w==="A + B"?`<span class="pM" title="Mandatory: every week (A and B)">M</span>`:`<span class="p${e.w}">${e.w}</span>`}</td><td><span class="chip c-${esc(e.c)}">${esc(where(e))}</span></td><td>${esc(e.t)}</td><td class="m">${left}/${total} left</td></tr>`}).join("");
+    return `<div class="subj"><h3>${esc(s)}${g[s].some(e=>e.o)?' <span class="note">(elective)</span>':""}</h3><div class="tw"><table>${rows}</table></div></div>`}).join("");
+}
+function renderCur(){const i=weekIdx(new Date()),el=$("curWeek");
+  if(i<0||i>=NWEEKS){el.textContent="Outside semester";el.className="pill";return}
+  el.textContent=`This week: ${par(i)}`;el.className="pill p"+par(i)}
+function fmtStamp(isoStr){try{const d=new Date(isoStr);return `${dm(d)}.${d.getFullYear()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`}catch(e){return isoStr}}
+function renderStatus(){
+  const m=G().meta||{};
+  const parts=[m.origin==="planner"?`Data from FK Planer, checked ${fmtStamp(m.planner)}`:`Data from Excel saved ${m.excel||"—"}`];
+  if(m.origin!=="planner")parts.push(m.planner?`FK Planer last checked ${fmtStamp(m.planner)}`:"FK Planer not checked yet");
+  if(fromDevice)parts.push("loaded from this device");
+  if(fkNote)parts.push(fkNote);
+  $("status").textContent=parts.join(" · ");
+}
+function renderGroupSel(){
+  const ids=Object.keys(DATA.groups).sort((a,b)=>{const[x,i]=a.split("_GL"),[y,j]=b.split("_GL");return x.localeCompare(y)||(+i)-(+j)});
+  const specs=[...new Set(ids.map(id=>id.split("_GL")[0]))];
+  $("groupSel").innerHTML=specs.length===1?ids.map(id=>`<option value="${esc(id)}"${id===CUR?" selected":""}>${esc(glabel(id))}</option>`).join(""):specs.map(sp=>`<optgroup label="${esc(SPEC_NAMES[sp]||sp)}">${ids.filter(id=>id.startsWith(sp+"_GL")).map(id=>`<option value="${esc(id)}"${id===CUR?" selected":""}>${esc(glabel(id))}</option>`).join("")}</optgroup>`).join("");
+  const sp=CUR.split("_GL")[0], src=DATA.source||{};
+  const yr=src.year?src.year.replace(/^(\d{4})\/\d\d(\d\d)$/,"$1/$2"):"";
+  $("sub").textContent=[src.level?`${src.level} stopień`:"",src.sem?`sem. ${src.sem}`:"",SPEC_NAMES[sp]||"specjalność "+sp,[src.season?src.season.toLowerCase():"",yr].filter(Boolean).join(" ")].filter(Boolean).join(" · ");
+  document.title=`${glabel(CUR)} Timetable`.replace(" · "," ");
+}
+function renderAll(){derive();renderGroupSel();renderCur();renderWeek();renderSubjects();renderStatus()}
+$("groupSel").addEventListener("change",e=>{CUR=pickGroup(e.target.value);store.set(LS_GROUP,CUR);closePanel();pending=null;derive();wk=defaultWeek();renderAll()});
+
+/* ---------- update flow ---------- */
+const panel=$("panel");
+function showPanel(html){panel.innerHTML=html;panel.hidden=false}
+function closePanel(){panel.hidden=true;panel.innerHTML=""}
+panel.addEventListener("click",e=>{const b=e.target.closest("[data-act]");if(!b)return;
+  if(b.dataset.act==="close")closePanel();
+  if(b.dataset.act==="apply")applyPending(b);});
+const occLabel=([k,c])=>{const[d,a]=k.split("|");return `${DAYS[(local(d).getDay()+6)%7]} ${dmS(d)} · ${a} · ${esc(c.s)} — ${esc(c.f)}`};
+function listHtml(title,cls,items,fmt){if(!items.length)return"";const max=25;
+  return `<div class="k ${cls}">${title} (${items.length})</div><ul>${items.slice(0,max).map(x=>`<li>${fmt(x)}</li>`).join("")}${items.length>max?`<li>…and ${items.length-max} more</li>`:""}</ul>`}
+let pending=null;
+function reviewUpdate(next,label){
+  const nextCur=next.groups[CUR]||{classes:[]};
+  const df=diffClasses(EV,nextCur.classes), calChanged=JSON.stringify(next.calendar)!==JSON.stringify(DATA.calendar);
+  const n=df.added.length+df.removed.length+df.moved.length;
+  const semChanged=next.source&&DATA.source&&next.source.label+next.source.year!==DATA.source.label+DATA.source.year;
+  pending=next;
+  if(!n&&!calChanged&&!semChanged){
+    showPanel(`<h2>${label}: everything matches for ${esc(glabel(CUR))}</h2><p>The same classes, dates and rooms as now. Other groups are refreshed too when you save.</p><div class="row"><button class="btn primary" data-act="apply">Save check time</button><button class="btn" data-act="close">Close</button></div>`);
+    return;
+  }
+  showPanel(`<h2>${label}: ${n} change${n===1?"":"s"} for ${esc(glabel(CUR))}${calChanged?" + calendar update":""}</h2><p>Applying updates all groups at once.</p>
+    ${listHtml("New classes","add",df.added,occLabel)}
+    ${listHtml("Removed classes","del",df.removed,occLabel)}
+    ${listHtml("Room changes","",df.moved,x=>`${occLabel(x)}: ${esc(x[2])} → ${esc(x[1].r)}`)}
+    ${calChanged?'<p>The university calendar (days off, replacement days or semester dates) is different too.</p>':""}
+    ${semChanged?`<p>New semester: ${esc(next.source.label)} · ${esc((next.source.season||"").toLowerCase())} ${esc(next.source.year||"")}. After you apply, the page checks FK Planer for this semester (in the Claude desktop app) to get its dates and calendar.</p>`:""}
+    <div class="row"><button class="btn primary" data-act="apply">Apply update</button><button class="btn" data-act="close">Cancel</button></div>`);
+}
+async function applyPending(btn){
+  if(!pending)return;btn.disabled=true;
+  const next=pending;pending=null;
+  next.meta.updated=new Date().toISOString();
+  if(next.source&&DATA.source&&next.source.label+next.source.year!==DATA.source.label+DATA.source.year)store.set("pk-fk-lastcheck","0");
+  if(IS_ARTIFACT){
+    const art=await window.claude.use("artifact").catch(()=>null);
+    if(art){
+      try{btn.textContent="Saving…";await art.publish(buildDoc(next));return}
+      catch(e){
+        if(e&&e.code==="conflict")return; // the page reloads to the newer version
+        if(e&&(e.code==="rate_limited"||e.code==="upstream_error")){showPanel(`<h2>Couldn't save right now</h2><p>${e.code==="rate_limited"?"Too many saves in a short time. Wait a minute and try again.":"The save didn't go through. Try again in a moment."}</p><div class="row"><button class="btn" data-act="close">Close</button></div>`);return}
+        // read-only view or capability missing: keep it on this device
+      }
+    }
+  }
+  const ok=store.set(LS_KEY,JSON.stringify(next));
+  const semNew=next.source&&DATA.source&&next.source.label+next.source.year!==DATA.source.label+DATA.source.year;
+  DATA=next;fromDevice=ok;renderAll();if(semNew)setTimeout(()=>checkPlanner(true),0);
+  showPanel(`<h2>Updated</h2><p>${ok?"Saved on this device. Other devices keep their own copy.":"Updated for now. This browser doesn't allow saving, so the update will be gone after a reload."}</p><div class="row"><button class="btn" data-act="close">Close</button></div>`);
+}
+function buildDoc(data){
+  const json=JSON.stringify(data).replace(/</g,"\\u003c");
+  return SKEL+'\n<title>CY GL4 Timetable</title>\n<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">\n<style id="st">'+STYLE+"</style>\n\n"+SHELL+'\n\n<script type="application/json" id="schedule-data">'+json+"<\/script>\n<script>"+MAIN_SRC+"<\/script>\n\n</body></html>";
+}
+
+/* Excel */
+let xlsxLib=null;
+function loadXlsxLib(){if(window.XLSX)return Promise.resolve(window.XLSX);if(xlsxLib)return xlsxLib;
+  xlsxLib=new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";s.onload=()=>res(window.XLSX);s.onerror=()=>{xlsxLib=null;rej(new Error("Couldn't load the Excel reader. Check your internet connection and try again."))};document.head.appendChild(s)});return xlsxLib}
+$("loadXlsx").onclick=()=>{$("xlsxFile").value="";$("xlsxFile").click()};
+$("xlsxFile").addEventListener("change",async ev=>{
+  const f=ev.target.files&&ev.target.files[0];if(!f)return;
+  showPanel(`<h2>Reading ${esc(f.name)}…</h2>`);
+  try{
+    const [XLSX,buf]=await Promise.all([loadXlsxLib(),f.arrayBuffer()]);
+    const wb=XLSX.read(buf,{type:"array"});
+    let groups=null,stamp="",lastErr=null,source=null;
+    for(const name of wb.SheetNames){const ws=wb.Sheets[name];if(!ws||!ws["!ref"])continue;const rg=XLSX.utils.decode_range(ws["!ref"]);
+      const sheet={get:(r,c)=>{const cell=ws[XLSX.utils.encode_cell({r,c})];return cell?cell.v:undefined},merges:ws["!merges"]||[],maxR:rg.e.r,maxC:rg.e.c};
+      const ids=new Set();for(let r=0;r<=Math.min(rg.e.r,40);r++)for(let c=0;c<=rg.e.c;c++){const v=sheet.get(r,c);if(v!=null&&GROUP_FILTER.test(String(v).trim()))ids.add(String(v).trim())}
+      const found={};
+      for(const id of ids){try{const p=parseSheet(sheet,{group:id});stamp=stamp||p.stamp;source=source||p.source;
+        const classes=finalize(p.classes,DATA.calendar,DATA.rooms),[sp,n]=id.split("_GL");
+        const cg=[...new Set(classes.map(c=>c.g).filter(g=>/_C\d+$/.test(g)))];
+        found[id]={spec:sp,lab:+n,plannerGroups:[sp,`${sp}_L${n}`,id,...cg],meta:{excel:p.stamp||f.name,planner:(DATA.groups[id]&&DATA.groups[id].meta.planner)||null,origin:"excel"},classes}}catch(e){lastErr=e}}
+      if(Object.keys(found).length){groups=found;break}}
+    if(!groups)throw lastErr||new Error("This file has no timetable sheet with lab groups.");
+    if(!groups[CUR])throw new Error(`This file has no ${glabel(CUR)} column.`);
+    if(!source)throw new Error("Couldn't tell which semester this file is for (expected a header like “II st. sem. 2 CY”).");
+    reviewUpdate({meta:{...DATA.meta},source:{...source,excel:stamp||f.name},calendar:DATA.calendar,rooms:DATA.rooms,groups},`Excel ${esc(stamp||f.name)}`);
+  }catch(e){showPanel(`<h2>Couldn't read this file</h2><p>${esc(e.message||e)}</p><p>Use the timetable export from FK Planer (“Excel — stacjonarne”).</p><div class="row"><button class="btn" data-act="close">Close</button></div>`)}
+});
+
+/* FK Planer, read through the Claude desktop app's browser.
+   Runs by itself when the page opens (at most every 30 minutes) and when the button is pressed;
+   changes are saved straight away and listed in a pop-up. */
+const LS_FKCHECK="pk-fk-lastcheck", SS_CHANGES="pk-fk-changes", AUTO_EVERY=30*60e3;
+const ss={get(k){try{return sessionStorage.getItem(k)}catch(e){return null}},set(k,v){try{sessionStorage.setItem(k,v)}catch(e){}},del(k){try{sessionStorage.removeItem(k)}catch(e){}}};
+const noHost=()=>showPanel(`<h2>Checking FK Planer needs the Claude desktop app</h2><p>The page reads FK Planer through the app's built-in browser, so this works only when you open the page in the Claude desktop app on your computer.</p><p>Anywhere else: open <a href="${PLANNER_URL}" target="_blank" rel="noopener">FK Planer</a>, click “Excel — stacjonarne”, then use Update source here.</p><div class="row"><button class="btn" data-act="close">Close</button></div>`);
+const textOf=r=>{if(!r)return"";if(typeof r.payload==="string")return r.payload;return (r.content||[]).filter(b=>b&&b.type==="text").map(b=>b.text).join("")};
+const hm=d=>`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+
+async function fetchPlannerData(mcp){
+  const opened=await mcp.callTool("host:claude_browser","preview_start",{url:SNAPSHOT_URL});
+  const m=/tabId[^\w]*([\w-]+)/.exec(textOf(opened));
+  const got=await mcp.callTool("host:claude_browser","get_page_text",{...(m?{tabId:m[1]}:{}),max_chars:5000000});
+  const t=textOf(got),i=t.indexOf("{"),j=t.lastIndexOf("}");
+  let snap;try{snap=JSON.parse(t.slice(i,j+1))}catch(e){throw {code:"parse",message:t.length>4.9e6?"The planner's data was too large to read in one go.":"The planner returned something this page couldn't read."}}
+  const now=new Date().toISOString();let cal=DATA.calendar,rooms={...DATA.rooms};const groups={};
+  for(const[id,g]of Object.entries(DATA.groups)){
+    const res=plannerToClasses(snap,g.classes,{plannerGroups:g.plannerGroups,source:DATA.source});
+    if(res.calendar)cal=res.calendar;Object.assign(rooms,res.rooms);
+    if(!res.classes.length){groups[id]=g;continue}
+    groups[id]={...g,meta:{...g.meta,planner:now,origin:"planner"},classes:res.classes};
+  }
+  if(groups[CUR]===DATA.groups[CUR])throw {code:"parse",message:`FK Planer has no ${glabel(CUR)} classes for ${(DATA.source&&DATA.source.label)||"this semester"}, so nothing was changed.`};
+  for(const g of Object.values(groups))g.classes=g.classes.map(c=>({...c,c:campusOf(c.r,rooms)})).sort((p,q)=>p.day-q.day||p.a.localeCompare(q.a));
+  return {meta:{...DATA.meta},source:DATA.source,calendar:cal,rooms,groups};
+}
+const plainOcc=([k,c])=>{const[d,a]=k.split("|");return `${DAYS[(local(d).getDay()+6)%7]} ${dmS(d)} · ${a} · ${c.s} — ${c.f}`};
+function summarize(next){
+  const groups={};let total=0;
+  for(const id of Object.keys(next.groups)){
+    const old=(DATA.groups[id]||{classes:[]}).classes, df=diffClasses(old,next.groups[id].classes);
+    const g={added:df.added.map(plainOcc),removed:df.removed.map(plainOcc),moved:df.moved.map(x=>`${plainOcc(x)}: ${x[2]} → ${x[1].r}`)};
+    g.n=g.added.length+g.removed.length+g.moved.length;total+=g.n;groups[id]=g;
+  }
+  return {at:new Date().toISOString(),groups,total,cal:JSON.stringify(next.calendar)!==JSON.stringify(DATA.calendar)};
+}
+function showChanges(sum){
+  const ul=(title,cls,items)=>{if(!items||!items.length)return"";const max=40;
+    return `<div class="k ${cls}">${title} (${items.length})</div><ul>${items.slice(0,max).map(x=>`<li>${esc(x)}</li>`).join("")}${items.length>max?`<li>…and ${items.length-max} more</li>`:""}</ul>`};
+  const cur=sum.groups[CUR]||{n:0}, others=Object.entries(sum.groups).filter(([id,g])=>id!==CUR&&g.n);
+  $("chBody").innerHTML=`<h2 id="chTitle">Timetable updated from FK Planer</h2>
+    <p>Checked ${esc(fmtStamp(sum.at))}. ${cur.n?`${cur.n} change${cur.n===1?"":"s"} for ${esc(glabel(CUR))}:`:`No changes for ${esc(glabel(CUR))}.`}</p>
+    ${ul("New classes","add",cur.added)}${ul("Removed classes","del",cur.removed)}${ul("Room changes","",cur.moved)}
+    ${sum.cal?"<p>The university calendar changed too (days off, replacement days or semester dates).</p>":""}
+    ${others.length?`<p>Also updated: ${others.map(([id,g])=>`${esc(glabel(id))} (${g.n})`).join(", ")}.</p>`:""}`;
+  const dlg=$("changes");
+  try{dlg.showModal()}catch(e){dlg.setAttribute("open","")}
+}
+$("chClose").onclick=()=>{const d=$("changes");try{d.close()}catch(e){d.removeAttribute("open")}};
+
+async function saveUpdate(next,sum){
+  next.meta.updated=new Date().toISOString();
+  const art=IS_ARTIFACT?await window.claude.use("artifact").catch(()=>null):null;
+  if(art){
+    ss.set(SS_CHANGES,JSON.stringify(sum));
+    try{await art.publish(buildDoc(next));return}   // the page reloads and shows the pop-up
+    catch(e){
+      ss.del(SS_CHANGES);
+      if(e&&e.code==="conflict")return;
+      if(e&&(e.code==="rate_limited"||e.code==="upstream_error")){fkNote="FK Planer has changes, but saving failed. Try again in a minute";renderStatus();return}
+    }
+  }
+  const ok=store.set(LS_KEY,JSON.stringify(next));
+  DATA=next;fromDevice=ok;derive();renderAll();showChanges(sum);
+}
+
+let checking=false;
+async function checkPlanner(auto){
+  if(checking)return;
+  const mcp=IS_ARTIFACT?await window.claude.use("mcp").catch(()=>null):null;
+  if(!mcp){if(!auto)noHost();return}
+  checking=true;store.set(LS_FKCHECK,String(Date.now()));
+  fkNote="Checking FK Planer…";renderStatus();if(!auto)closePanel();
+  try{
+    const next=await fetchPlannerData(mcp), sum=summarize(next);
+    if(!sum.total&&!sum.cal){fkNote=`FK Planer checked at ${hm(new Date())}, no changes`;renderStatus();return}
+    fkNote="";await saveUpdate(next,sum);
+  }catch(e){
+    const c=e&&e.code;fkNote="";renderStatus();
+    if(auto){
+      if(c==="server_not_connected"||c==="not_granted"||c==="capability_disabled"||c==="capability_removed")return;
+      fkNote=c==="cancelled"||c==="not_in_manifest"?"Automatic FK Planer check skipped":c==="parse"?String(e.message||"").replace(/, so nothing was changed\.$/,""):"Couldn't check FK Planer automatically";renderStatus();return;
+    }
+    if(c==="server_not_connected"||c==="not_granted"||c==="capability_disabled"||c==="capability_removed")noHost();
+    else if(c==="cancelled")showPanel('<h2>Check cancelled</h2><p>Nothing was changed.</p><div class="row"><button class="btn" data-act="close">Close</button></div>');
+    else if(c==="not_in_manifest")showPanel('<h2>Browser access is off for this page</h2><p>Allow the Claude browser for this page in its Permissions menu, then try again.</p><div class="row"><button class="btn" data-act="close">Close</button></div>');
+    else showPanel(`<h2>Couldn't check FK Planer</h2><p>${esc((e&&e.message)||"Something went wrong.")}</p><p>You can still open <a href="${PLANNER_URL}" target="_blank" rel="noopener">FK Planer</a>, download “Excel — stacjonarne” and use Update source.</p><div class="row"><button class="btn" data-act="close">Close</button></div>`);
+  }finally{checking=false}
+}
+function autoCheck(){
+  const saved=ss.get(SS_CHANGES);
+  if(saved){ss.del(SS_CHANGES);try{showChanges(JSON.parse(saved))}catch(e){}}
+  if(!IS_ARTIFACT)return;
+  const last=Number(store.get(LS_FKCHECK)||0);
+  if(Date.now()-last<AUTO_EVERY)return;
+  checkPlanner(true);
+}
+
+/* ---------- tabs, navigation ---------- */
+function setTab(t){const w=t==="week";$("t-week").setAttribute("aria-selected",w);$("t-subj").setAttribute("aria-selected",!w);$("v-week").hidden=!w;$("v-subj").hidden=w;store.set("tab",t)}
+$("t-week").onclick=()=>setTab("week");$("t-subj").onclick=()=>setTab("subj");
+$("prev").onclick=()=>{wk--;renderWeek()};$("nextw").onclick=()=>{wk++;renderWeek()};
+$("today").onclick=()=>{wk=defaultWeek();renderWeek()};
+
+derive();wk=defaultWeek();renderAll();
+if(store.get("tab")==="subj")setTab("subj");
+autoCheck();
+setInterval(()=>{renderCur();renderWeek()},60000);
+
+/* PWA: install prompt + offline cache (when hosted as its own site over HTTPS) */
+let deferred;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;$("install").hidden=false});
+$("install").onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;$("install").hidden=true};
+if("serviceWorker" in navigator&&window.top===window&&document.querySelector('link[rel="manifest"]')){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+</script>
+
+</body>
+</html>
