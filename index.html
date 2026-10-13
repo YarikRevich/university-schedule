@@ -385,7 +385,7 @@ function renderCur(){const i=weekIdx(new Date()),el=$("curWeek");
 function fmtStamp(isoStr){try{const d=new Date(isoStr);return `${dm(d)}.${d.getFullYear()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`}catch(e){return isoStr}}
 function renderStatus(){
   const m=G().meta||{};
-  const parts=[m.origin==="planner"?`Data from FK Planer, checked ${fmtStamp(m.planner)}`:`Data from Excel saved ${m.excel||"—"}`];
+  const parts=[m.origin==="planner"?`Timetable from FK Planer, last changed ${fmtStamp(m.planner)}`:`Data from Excel saved ${m.excel||"—"}`];
   if(m.origin!=="planner")parts.push(m.planner?`FK Planer last checked ${fmtStamp(m.planner)}`:"FK Planer not checked yet");
   if(fromDevice)parts.push("loaded from this device");
   if(fkNote)parts.push(fkNote);
@@ -578,6 +578,19 @@ async function checkPlanner(auto){
 }
 /* Hosted copy (GitHub Pages / installed app): a GitHub Action downloads FK Planer every 2 hours
    and saves this site's groups in data.json next to the page. */
+const SYNC_REPO="YarikRevich/university-schedule";
+async function lastSyncRun(){   // when the GitHub Action last ran (GitHub's API allows this from any site)
+  try{
+    const r=await fetch(`https://api.github.com/repos/${SYNC_REPO}/actions/workflows/sync-planner.yml/runs?per_page=1&status=completed`,{headers:{Accept:"application/vnd.github+json"}});
+    if(!r.ok)return null;const j=await r.json();const w=j.workflow_runs&&j.workflow_runs[0];
+    return w?{at:w.updated_at,ok:w.conclusion==="success"}:null;
+  }catch(e){return null}
+}
+async function syncNote(){
+  const run=await lastSyncRun();
+  if(!run)return "FK Planer synced automatically every 2 hours";
+  return run.ok?`FK Planer last checked ${fmtStamp(run.at)} (every 2 hours)`:`Last FK Planer check failed (${fmtStamp(run.at)}); showing the saved timetable`;
+}
 async function loadSynced(){
   try{
     const r=await fetch("data.json",{cache:"no-store"});
@@ -586,11 +599,11 @@ async function loadSynced(){
     if(!d||!d.groups||!d.meta)throw new Error("bad data");
     d.groups=Object.fromEntries(Object.entries(d.groups).filter(([id])=>GROUP_FILTER.test(id)));
     if(!Object.keys(d.groups).length)return;
-    if(!(d.meta.updated>DATA.meta.updated)){fkNote="FK Planer synced automatically every 2 hours";renderStatus();return}
+    if(!(d.meta.updated>DATA.meta.updated)){fkNote=await syncNote();renderStatus();return}
     const sum=summarize(d);sum.at=d.meta.updated;
     DATA=d;fromDevice=false;store.set(LS_KEY,JSON.stringify(d));
     CUR=pickGroup(CUR);derive();renderAll();
-    fkNote="FK Planer synced automatically every 2 hours";renderStatus();
+    fkNote=await syncNote();renderStatus();
     if(sum.total||sum.cal)showChanges(sum);
   }catch(e){fkNote="Couldn't load the latest FK Planer sync; showing the saved timetable";renderStatus()}
 }
