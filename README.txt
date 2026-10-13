@@ -12,3 +12,12 @@ Install:
 - iPhone / iPad (Safari): Share -> Add to Home Screen.
 
 After editing index.html, change VERSION in sw.js so phones pick up the new version.
+
+Automatic FK Planer sync (GitHub Action)
+- .github/workflows/sync-planner.yml runs every 2 hours (and on demand: Actions tab -> "Sync FK Planer" -> Run workflow).
+- It runs scripts/sync-planner.mjs, which downloads FK Planer, keeps this site's groups for the semester in data.json
+  ("source" -> e.g. II st. sem. 2 CY) and commits data.json only when something changed.
+- The page loads data.json on every open and shows a pop-up listing what changed.
+- Run it locally:  node scripts/sync-planner.mjs   (Node 20+)
+- New semester: load the new Excel with "Update source" in the Claude version of the page, then ask Claude to
+  update data.json's "source" here (or edit it by hand) so the Action follows the new semester.

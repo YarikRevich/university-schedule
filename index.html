@@ -576,10 +576,28 @@ async function checkPlanner(auto){
     else showPanel(`<h2>Couldn't check FK Planer</h2><p>${esc((e&&e.message)||"Something went wrong.")}</p><p>You can still open <a href="${PLANNER_URL}" target="_blank" rel="noopener">FK Planer</a>, download “Excel — stacjonarne” and use Update source.</p><div class="row"><button class="btn" data-act="close">Close</button></div>`);
   }finally{checking=false}
 }
+/* Hosted copy (GitHub Pages / installed app): a GitHub Action downloads FK Planer every 2 hours
+   and saves this site's groups in data.json next to the page. */
+async function loadSynced(){
+  try{
+    const r=await fetch("data.json",{cache:"no-store"});
+    if(!r.ok)throw new Error(String(r.status));
+    const d=await r.json();
+    if(!d||!d.groups||!d.meta)throw new Error("bad data");
+    d.groups=Object.fromEntries(Object.entries(d.groups).filter(([id])=>GROUP_FILTER.test(id)));
+    if(!Object.keys(d.groups).length)return;
+    if(!(d.meta.updated>DATA.meta.updated)){fkNote="FK Planer synced automatically every 2 hours";renderStatus();return}
+    const sum=summarize(d);sum.at=d.meta.updated;
+    DATA=d;fromDevice=false;store.set(LS_KEY,JSON.stringify(d));
+    CUR=pickGroup(CUR);derive();renderAll();
+    fkNote="FK Planer synced automatically every 2 hours";renderStatus();
+    if(sum.total||sum.cal)showChanges(sum);
+  }catch(e){fkNote="Couldn't load the latest FK Planer sync; showing the saved timetable";renderStatus()}
+}
 function autoCheck(){
   const saved=ss.get(SS_CHANGES);
   if(saved){ss.del(SS_CHANGES);try{showChanges(JSON.parse(saved))}catch(e){}return}  // just reloaded after saving fresh planner data
-  if(!IS_ARTIFACT){fkNote=NO_SYNC;renderStatus();return}
+  if(!IS_ARTIFACT){loadSynced();return}   // hosted copy: read data.json kept fresh by the GitHub Action
   checkPlanner(true);   // every time the page opens
 }
 
