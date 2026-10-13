@@ -552,11 +552,12 @@ async function saveUpdate(next,sum){
   DATA=next;fromDevice=ok;derive();renderAll();showChanges(sum);
 }
 
+const NO_SYNC="FK Planer sync off here: it runs only when this page is open in a Claude desktop app session";
 let checking=false;
 async function checkPlanner(auto){
   if(checking)return;
   const mcp=IS_ARTIFACT?await window.claude.use("mcp").catch(()=>null):null;
-  if(!mcp){if(!auto)noHost();return}
+  if(!mcp){if(!auto)noHost();else{fkNote=NO_SYNC;renderStatus()}return}
   checking=true;store.set(LS_FKCHECK,String(Date.now()));
   fkNote="Checking FK Planer…";renderStatus();if(!auto)closePanel();
   try{
@@ -566,7 +567,7 @@ async function checkPlanner(auto){
   }catch(e){
     const c=e&&e.code;fkNote="";renderStatus();
     if(auto){
-      if(c==="server_not_connected"||c==="not_granted"||c==="capability_disabled"||c==="capability_removed")return;
+      if(c==="server_not_connected"||c==="not_granted"||c==="capability_disabled"||c==="capability_removed"){fkNote=NO_SYNC;renderStatus();return}
       fkNote=c==="cancelled"||c==="not_in_manifest"?"Automatic FK Planer check skipped":c==="parse"?String(e.message||"").replace(/, so nothing was changed\.$/,""):"Couldn't check FK Planer automatically";renderStatus();return;
     }
     if(c==="server_not_connected"||c==="not_granted"||c==="capability_disabled"||c==="capability_removed")noHost();
@@ -578,7 +579,7 @@ async function checkPlanner(auto){
 function autoCheck(){
   const saved=ss.get(SS_CHANGES);
   if(saved){ss.del(SS_CHANGES);try{showChanges(JSON.parse(saved))}catch(e){}return}  // just reloaded after saving fresh planner data
-  if(!IS_ARTIFACT)return;
+  if(!IS_ARTIFACT){fkNote=NO_SYNC;renderStatus();return}
   checkPlanner(true);   // every time the page opens
 }
 
